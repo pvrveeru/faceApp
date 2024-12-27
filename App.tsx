@@ -1,117 +1,106 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect, useState, useRef } from 'react';
+import { View, StyleSheet, Text, Button, Alert, Image } from 'react-native';
+import { Camera, useCameraDevice } from 'react-native-vision-camera';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+const App = () => {
+  const [hasPermission, setHasPermission] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const cameraRef = useRef(null);
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  const device = useCameraDevice('front');
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const cameraStatus = await Camera.requestCameraPermission();
+      setHasPermission(cameraStatus === 'granted');
+    };
+    requestPermissions();
+  }, []);
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const takePhoto = async () => {
+    try {
+      if (cameraRef.current) {
+        const photo = await cameraRef.current.takePhoto({
+          qualityPrioritization: 'balanced',
+        });
+        setCapturedImage(photo.path);
+        Alert.alert('Photo taken', `Path: ${photo.path}`);
+      } else {
+        Alert.alert('Error', 'Camera not ready.');
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Could not take photo.');
+    }
   };
 
+  if (!hasPermission) {
+    return (
+      <View style={styles.centered}>
+        <Text>No camera permission!</Text>
+      </View>
+    );
+  }
+
+  if (device == null) {
+    return (
+      <View style={styles.centered}>
+        <Text>Loading camera...</Text>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <View style={styles.container}>
+      {!capturedImage ? (
+        <Camera
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={true}
+          ref={cameraRef}
+          photo={true} // Ensure this prop is passed correctly
+        />
+      ) : (
+        <Image source={{ uri: `file://${capturedImage}` }} style={styles.capturedImage} />
+      )}
+      <View style={styles.buttonContainer}>
+        <Button
+          title={capturedImage ? 'Retake Photo' : 'Take Photo'}
+          onPress={() => {
+            if (capturedImage) {
+              setCapturedImage(null);
+            } else {
+              takePhoto();
+            }
+          }}
+        />
+      </View>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    zIndex: 100,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  highlight: {
-    fontWeight: '700',
+  capturedImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
 });
 
