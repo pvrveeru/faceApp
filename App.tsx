@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Text, Button, Alert, Image } from 'react-native';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import FaceDetection from '@react-native-ml-kit/face-detection';
 
 const App = () => {
   const [hasPermission, setHasPermission] = useState(false);
@@ -49,7 +50,23 @@ const App = () => {
       </View>
     );
   }
+  const detectFaces = async () => {
+    if (capturedImage) {
+      try {
+        // Convert file path to a valid content URI
+        const contentUri = `file://${capturedImage}`;
+        const results = await FaceDetection.detect(contentUri, { landmarkMode: 'all' });
+        console.log('Face detection results:', results);
+      } catch (error) {
+        console.error('Error detecting faces:', error);
+      }
+    } else {
+      console.error('No image captured for face detection');
+    }
+  };
 
+  console.log('detectfaces', detectFaces());
+console.log('capturedImage', capturedImage);
   return (
     <View style={styles.container}>
       {!capturedImage ? (
