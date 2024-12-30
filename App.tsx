@@ -98,7 +98,7 @@ const App = () => {
     <View style={styles.container}>
       {!capturedImage ? (
         <>
-             <View style={styles.cameraContainer}>
+          <View style={styles.cameraContainer}>
             <Camera
               style={styles.camera}
               device={device}
@@ -129,10 +129,10 @@ const App = () => {
 
 const styles = StyleSheet.create({
   cameraContainer: {
-    width: width * 0.7, // Circle width (70% of screen width)
-    height: width * 0.7, // Circle height
-    borderRadius: width * 0.35, // Half of the circle's width
-    overflow: 'hidden', // Ensures the camera stays inside the circle
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'black',
