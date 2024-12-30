@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Text, Button, Alert, Image } from 'react-native';
+import { View, StyleSheet, Text, Button, Alert, Image, Dimensions } from 'react-native';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import FaceDetection from '@react-native-ml-kit/face-detection';
+
+const { width, height } = Dimensions.get('window');
 
 const App = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const cameraRef = useRef(null);
-
   const device = useCameraDevice('front');
 
   useEffect(() => {
@@ -25,7 +26,7 @@ const App = () => {
           qualityPrioritization: 'balanced',
         });
         setCapturedImage(photo.path);
-        Alert.alert('Photo taken', `Path: ${photo.path}`);
+        //Alert.alert('Photo taken', `Path: ${photo.path}`);
       } else {
         Alert.alert('Error', 'Camera not ready.');
       }
@@ -50,33 +51,63 @@ const App = () => {
       </View>
     );
   }
+
   const detectFaces = async () => {
     if (capturedImage) {
       try {
         // Convert file path to a valid content URI
         const contentUri = `file://${capturedImage}`;
         const results = await FaceDetection.detect(contentUri, { landmarkMode: 'all' });
-        console.log('Face detection results:', results);
+
+        if (results && results.length > 0) {
+          // Show an alert if faces are detected
+          Alert.alert(
+            'Face Detected',
+            `Detected ${results.length} face(s) in the image.`,
+            [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+          );
+          //console.log('Face detection results:', results);
+        } else {
+          Alert.alert(
+            'No Faces Detected',
+            'No faces were detected in the image.',
+            [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+          );
+        }
       } catch (error) {
-        console.error('Error detecting faces:', error);
+        //console.error('Error detecting faces:', error);
+        Alert.alert(
+          'Error',
+          'An error occurred while detecting faces. Please try again.',
+          [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+        );
       }
     } else {
-      console.error('No image captured for face detection');
+      //console.error('No image captured for face detection');
+      // Alert.alert(
+      //   'No Image',
+      //   'No image has been captured for face detection.',
+      //   [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+      // );
     }
   };
 
   console.log('detectfaces', detectFaces());
-console.log('capturedImage', capturedImage);
+  console.log('capturedImage', capturedImage);
   return (
     <View style={styles.container}>
       {!capturedImage ? (
-        <Camera
-          style={StyleSheet.absoluteFill}
-          device={device}
-          isActive={true}
-          ref={cameraRef}
-          photo={true} // Ensure this prop is passed correctly
-        />
+        <>
+             <View style={styles.cameraContainer}>
+            <Camera
+              style={styles.camera}
+              device={device}
+              isActive={true}
+              ref={cameraRef}
+              photo={true} // Ensure this prop is passed correctly
+            />
+          </View>
+        </>
       ) : (
         <Image source={{ uri: `file://${capturedImage}` }} style={styles.capturedImage} />
       )}
@@ -97,11 +128,25 @@ console.log('capturedImage', capturedImage);
 };
 
 const styles = StyleSheet.create({
+  cameraContainer: {
+    width: width * 0.7, // Circle width (70% of screen width)
+    height: width * 0.7, // Circle height
+    borderRadius: width * 0.35, // Half of the circle's width
+    overflow: 'hidden', // Ensures the camera stays inside the circle
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'black',
+  },
+  camera: {
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    backgroundColor: '#000',
   },
   buttonContainer: {
     position: 'absolute',
@@ -118,6 +163,36 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayTop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    width: '100%',
+    flex: 1,
+  },
+  overlayMiddle: {
+    flexDirection: 'row',
+    height: width * 0.95,
+  },
+  overlayBottom: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    width: '100%',
+  },
+  sideOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  },
+  innerCircle: {
+    width: width * 0.75,
+    height: width * 0.95,
+    borderRadius: (width * 0.75) / 2,
+    borderWidth: 2,
+    borderColor: 'white', // Optional border color
   },
 });
 
