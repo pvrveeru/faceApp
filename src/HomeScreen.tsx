@@ -14,12 +14,12 @@ const HomeScreen = ({ navigation }: { navigation: any }) => {
         <Text style={styles.buttonText}>Face Detection</Text>
       </TouchableOpacity>
 
-      {/* <TouchableOpacity
+      <TouchableOpacity
         style={[styles.button, { backgroundColor: '#2196F3' }]}
         onPress={() => navigation.navigate('LiveFaceDetection')}
       >
         <Text style={styles.buttonText}>LiveFaceDetection</Text>
-      </TouchableOpacity> */}
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: '#2196F3' }]}

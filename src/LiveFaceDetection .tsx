@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import { Camera, useCameraDevice, useFrameProcessor } from 'react-native-vision-camera';
+import { View, StyleSheet, Text, Alert } from 'react-native';
+import { Camera, useCameraDevice, useFrameProcessor,  } from 'react-native-vision-camera';
+import { Camera as CameraPermission } from 'react-native-vision-camera';
 import { detectFaces } from '@react-native-ml-kit/face-detection';
 import { Worklets } from 'react-native-worklets-core';
 
@@ -8,30 +9,56 @@ const CameraComponent = () => {
   const device = useCameraDevice('front');
   const cameraRef = useRef(null);
   const [faces, setFaces] = useState([]);
+  const [hasError, setHasError] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
-  const handleFacesDetection = Worklets.createRunInJsFn((detectedFaces) => {
+  useEffect(() => {
+      const checkPermission = async () => {
+        const cameraStatus = await CameraPermission.requestCameraPermission();
+        if (cameraStatus === 'denied') {
+          Alert.alert(
+            'Permission Denied',
+            'Camera permission is denied. Please allow access to the camera in settings.'
+          );
+        }
+        setHasPermission(cameraStatus === 'granted');
+      };
+  
+      if (hasPermission === null) {
+        checkPermission();
+      }
+    }, [hasPermission]);
+
+  // Use the new Worklets.createRunOnJS method
+  const handleFacesDetection = Worklets.createRunOnJS((detectedFaces) => {
     setFaces(detectedFaces);
   });
 
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet';
-    const detectedFaces = detectFaces(frame);
-    handleFacesDetection(detectedFaces);
+    try {
+      const detectedFaces = detectFaces(frame);
+      handleFacesDetection(detectedFaces);
+    } catch (error) {
+      console.error("Face detection failed: ", error);
+    }
   }, [handleFacesDetection]);
 
-  if (!device) {
+  if (hasError) {
     return <Text>No camera device found</Text>;
   }
 
   return (
     <View style={styles.container}>
-      <Camera
-        ref={cameraRef}
-        style={styles.camera}
-        device={device}
-        isActive={true}
-        frameProcessor={frameProcessor}
-      />
+      {device && (
+        <Camera
+          ref={cameraRef}
+          style={styles.camera}
+          device={device}
+          isActive={true}
+          frameProcessor={frameProcessor}
+        />
+      )}
       {faces.length > 0 && (
         <View style={styles.facesContainer}>
           {faces.map((face, index) => (
