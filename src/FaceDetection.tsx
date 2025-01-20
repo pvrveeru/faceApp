@@ -1,22 +1,57 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, Button, Alert, Image, Dimensions } from 'react-native';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import FaceDetection from '@react-native-ml-kit/face-detection';
+import { Camera as CameraPermission } from 'react-native-vision-camera';
+import RNFS from 'react-native-fs';
 
 const { width } = Dimensions.get('window');
 
 const FaceDetectionScreen = () => {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const cameraRef = useRef(null);
+  const camera = useRef<Camera>(null);
   const device = useCameraDevice('front');
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      const cameraStatus = await CameraPermission.requestCameraPermission();
+      if (cameraStatus === 'denied') {
+        Alert.alert(
+          'Permission Denied',
+          'Camera permission is denied. Please allow access to the camera in settings.'
+        );
+      }
+      setHasPermission(cameraStatus === 'granted');
+    };
+
+    if (hasPermission === null) {
+      checkPermission();
+    }
+  }, [hasPermission]);
 
   const takePhoto = async () => {
     try {
-      if (cameraRef.current) {
-        const photo = await cameraRef.current.takePhoto({
-          qualityPrioritization: 'balanced',
-        });
-        setCapturedImage(photo.path);
+      if (camera.current) {
+        const photo = await camera.current.takePhoto();
+        console.log('photo', photo);
+        const filePath = `file://${photo.path}`;
+        setCapturedImage(filePath);
+
+        // Ensure file path exists
+        const fileExists = await RNFS.exists(filePath);
+        if (!fileExists) {
+          Alert.alert('Error', 'Captured file does not exist.');
+          return;
+        }
+
+        // Detect faces in the captured image
+        const results = await FaceDetection.detect(filePath, { landmarkMode: 'all' });
+        if (results && results.length > 0) {
+          Alert.alert('Face Detected', `Detected ${results.length} face(s) in the image.`);
+        } else {
+          Alert.alert('No Faces Detected', 'No faces were detected in the image.');
+        }
       } else {
         Alert.alert('Error', 'Camera not ready.');
       }
@@ -26,29 +61,37 @@ const FaceDetectionScreen = () => {
     }
   };
 
-  const detectFaces = async () => {
-    if (capturedImage) {
-      try {
-        const contentUri = `file://${capturedImage}`;
-        const results = await FaceDetection.detect(contentUri, { landmarkMode: 'all' });
-
-        if (results && results.length > 0) {
-          Alert.alert('Face Detected', `Detected ${results.length} face(s) in the image.`);
-        } else {
-          Alert.alert('No Faces Detected', 'No faces were detected in the image.');
-        }
-      } catch (error) {
-        Alert.alert('Error', 'An error occurred while detecting faces.');
-      }
-    } else {
-      Alert.alert('No Image', 'No image has been captured for face detection.');
-    }
-  };
-
   if (device == null) {
     return (
       <View style={styles.centered}>
         <Text>Loading camera...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === null) {
+    return (
+      <View style={styles.centered}>
+        <Text>Requesting Camera Permission...</Text>
+      </View>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.permissionText}>Camera permission is required!</Text>
+        <Button
+          title="Request Permission Again"
+          onPress={async () => {
+            const cameraStatus = await CameraPermission.requestCameraPermission();
+            if (cameraStatus === 'granted') {
+              setHasPermission(true);
+            } else {
+              Alert.alert('Permission Denied', 'Camera permission is required to use this feature.');
+            }
+          }}
+        />
       </View>
     );
   }
@@ -61,19 +104,18 @@ const FaceDetectionScreen = () => {
             style={styles.camera}
             device={device}
             isActive={true}
-            ref={cameraRef}
+            ref={camera}
             photo={true}
           />
         </View>
       ) : (
-        <Image source={{ uri: `file://${capturedImage}` }} style={styles.capturedImage} />
+        <Image source={{ uri: capturedImage }} style={styles.capturedImage} />
       )}
       <View style={styles.buttonContainer}>
         <Button
           title={capturedImage ? 'Retake Photo' : 'Take Photo'}
           onPress={() => (capturedImage ? setCapturedImage(null) : takePhoto())}
         />
-        {capturedImage && <Button title="Detect Faces" onPress={detectFaces} />}
       </View>
     </View>
   );
@@ -110,6 +152,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
+  },
+  permissionText: {
+    fontSize: 18,
+    color: '#FF0000',
   },
 });
 

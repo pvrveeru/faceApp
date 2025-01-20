@@ -1,4 +1,4 @@
-package com.sateesh
+package com.faceapp
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -197,27 +197,41 @@
 // });
 
 // export default App;
-
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Alert, View, Text, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Camera } from 'react-native-vision-camera';
+import HomeScreen from './src/HomeScreen';
 import FaceDetectionScreen from './src/FaceDetection';
 import TextRecognitionScreen from './src/TextRecognitionScreen';
+import Ocr from './src/Ocr';
+import LiveFaceDetection from './src/LiveFaceDetection ';
+
+const Stack = createStackNavigator();
 
 const App = () => {
-  const [hasPermission, setHasPermission] = useState(false);
-  const [selectedFeature, setSelectedFeature] = useState<'face' | 'text' | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
     const requestPermissions = async () => {
       const cameraStatus = await Camera.requestCameraPermission();
       if (cameraStatus === 'denied') {
-        Alert.alert('Permission Required', 'Camera permission is required to use this feature.');
+        Alert.alert('Permission Denied', 'Camera permission is required to use this feature.');
       }
       setHasPermission(cameraStatus === 'granted');
     };
     requestPermissions();
   }, []);
+
+  if (hasPermission === null) {
+    return (
+      <View style={styles.centered}>
+        <Text>Requesting Camera Permission...</Text>
+      </View>
+    );
+  }
 
   if (!hasPermission) {
     return (
@@ -227,67 +241,22 @@ const App = () => {
     );
   }
 
-  if (selectedFeature === 'face') {
-    return <FaceDetectionScreen />;
-  }
-
-  if (selectedFeature === 'text') {
-    return <TextRecognitionScreen />;
-  }
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Smart Vision</Text>
-      <Text style={styles.subtitle}>Select a feature to get started:</Text>
-      
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: '#4CAF50' }]}
-        onPress={() => setSelectedFeature('face')}
-      >
-        <Text style={styles.buttonText}>Face Detection</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: '#2196F3' }]}
-        onPress={() => setSelectedFeature('text')}
-      >
-        <Text style={styles.buttonText}>Text Recognition</Text>
-      </TouchableOpacity>
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Home" screenOptions={{headerShown: false}}>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="FaceDetection" component={FaceDetectionScreen} />
+          <Stack.Screen name="TextRecognition" component={TextRecognitionScreen} />
+          <Stack.Screen name="Ocr" component={Ocr} />
+          <Stack.Screen name="LiveFaceDetection" component={LiveFaceDetection} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    padding: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-  },
-  button: {
-    width: '80%',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  buttonText: {
-    fontSize: 18,
-    color: '#FFF',
-    fontWeight: '600',
-  },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -300,5 +269,3 @@ const styles = StyleSheet.create({
 });
 
 export default App;
-
-
